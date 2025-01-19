@@ -1,10 +1,16 @@
 class User:
-    def __init__(self, user_id, user_name):
-        self.ID = user_id
-        self.Name = user_name
-        self.Donner = None
-        self.Acceptor = None
-        self.Wish = "Предпочтения не указаны"
+    def __init__(self, telegram_id, username="no name"):
+        self._telegram_id = telegram_id
+        self._username = username
 
-    # def __str__(self):
-    #
+    def __str__(self):
+        return f"tg_id: {self._telegram_id}\n" \
+               f"name: {self._username}"
+
+    @property
+    def Telegram_ID(self):
+        return self._telegram_id
+
+    @property
+    def Username(self):
+        return self._username
