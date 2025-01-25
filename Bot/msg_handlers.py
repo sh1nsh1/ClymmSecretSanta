@@ -74,10 +74,17 @@ async def ask_new_room_name(msg: types.Message, state: FSMContext):
 @r.message(MainMenuStates.room_name)
 async def save_room_name(msg: types.Message, state: FSMContext):
     print('save_room_name:', msg.from_user.id)
-    await state.update_data({"room_name": msg.text})
-    await state.set_state(MainMenuStates.conf_create_state)
-    await msg.answer(Strings.Strings.ASK_CONF_ROOM_NAME_STRING % msg.text,
-                     reply_markup=kb.AskConfirmationIKB('Подтвердить', 'room_name'))
+    room_name = msg.text.replace(' ','_')
+    if await Engine.validate_room_name(room_name):
+        await state.update_data({"room_name": room_name})
+        await state.set_state(MainMenuStates.conf_create_state)
+        await msg.answer(Strings.Strings.ASK_CONF_ROOM_NAME_STRING % room_name,
+                         reply_markup=kb.AskConfirmationIKB('Подтвердить', 'room_name'))
+    else:
+        await msg.answer(Strings.Strings.WRONG_ROOM_NAME_STRING % room_name,
+                     reply_markup=kb.MainMenuRKB())
+        # todo set to create_state
+        await state.clear()
 
 
 @r.callback_query(F.data == "confirm_room_name", MainMenuStates.conf_create_state)

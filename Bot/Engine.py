@@ -62,15 +62,16 @@ def create_user(user_id, username) -> User:
 
 
 @on_db
-async def get_room_name(conn, room_id):
-    res = await conn.fetchrow(f"select room_name from room_names where room_id = '{room_id}'")
+async def get_room_name(conn, room_id) -> str:
+    res = await conn.fetchrow(f"select room_name from rooms_info where room_id = '{room_id}'")
+    print(res)
     return res['room_name']
 
 
 @on_db
-async def get_room(conn, room_id):
+async def get_room(conn, room_id) -> Room:
     res = await conn.fetch(
-        f"select * from \"{room_id}\";"
+        f"select * from {room_id};"
     )
     room_name = await get_room_name(room_id)
 
@@ -100,16 +101,17 @@ async def register_new_user(conn, telegram_id, username) -> User:
 async def register_new_room(conn, room_name, user_host: User) -> Room:
     room_id = f"h{user_host.Telegram_ID}_{datetime.datetime.now().strftime("%d%m%Y%H%M%S")}"
     await conn.execute(
-        f'create table {room_id}('
+        f'create table \"{room_id}\"('
         f"  player_id text primary key, "
         f"  name text, "
-        f"  acceptor text, "
+        f"  acceptor_id text, "
         f"  disc text);")
-
-    await conn.execute(
+    q = (
         f"insert into rooms_info values"
-        f"('{room_id}', '{room_name}', '{user_host.Telegram_ID}', {False}, {1});"
-    )
+        f"('{room_id}', '{room_name}', '{user_host.Telegram_ID}', {False}, {0});")
+    print(q)
+    await conn.execute(q)
+
     # сделать хоста игроком
     player = Player(user_host.Telegram_ID, user_host.Username)
     await put_player_in_room(room_id, player, is_host=True)
@@ -117,6 +119,14 @@ async def register_new_room(conn, room_name, user_host: User) -> Room:
     room = Room(room_id, room_name)
     room.add_player(player)
     return room
+
+
+async def validate_room_name(room_name) -> bool:
+    restricted_symbols = [",", "`", "\'", "\"", "\\", '--']
+    for s in restricted_symbols:
+        if s in room_name:
+            return False
+    return True
 
 
 @on_db
@@ -130,7 +140,11 @@ async def put_player_in_room(conn, room_id, user: User, is_host=False):
             f"'{player.Acceptor}', '{player.Disc}');"
         )
         await conn.execute(
-            f"update rooms_info set player_count = player_count + 1 where room_id = {room_id};"
+            f"update rooms_info set player_count = player_count + 1 where room_id = '{room_id}';"
+        )
+
+        await conn.execute(
+            f"insert into users_rooms values ('{User.Telegram_ID}', {is_host}, '{room_id}');"
         )
 
     except asyncpg.exceptions.UndefinedTableError:
