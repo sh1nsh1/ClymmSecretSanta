@@ -1,15 +1,15 @@
 from aiogram import Router, types, F
 from aiogram.types import ReplyKeyboardRemove
 
-import Strings.Strings
 from StateList import MainMenuStates, RoomMenuStates, PlayerStates
 from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from exeptions import *
-from Strings.Strings import *
 
 import Engine
 import Keyboards as kb
+
+import strings.Strings as Strings
 
 r = Router()
 
@@ -18,7 +18,7 @@ r = Router()
 async def start_cmd(message: types.Message, state: FSMContext):
     print('start_cmd:', message.from_user.id)
     await state.clear()
-    await message.answer(START_STRING)
+    await message.answer(Strings.START_STRING)
 
     try:
         user = await Engine.register_new_user(message.from_user.id, message.from_user.username)
@@ -51,7 +51,7 @@ async def cancel(msg: types.CallbackQuery | types.Message, state: FSMContext):
         await state.clear()
         await state.set_data(data)
 
-    await msg.answer(Strings.Strings.CANCELED_STRING % word, reply_markup=rkb)
+    await msg.answer(Strings.CANCELED_STRING % word, reply_markup=rkb)
 
     if curr_state is None:
         return
@@ -60,14 +60,14 @@ async def cancel(msg: types.CallbackQuery | types.Message, state: FSMContext):
 @r.message(F.text == "Создать новую комнату")
 async def ask_create_new_room(msg: types.Message, state: FSMContext):
     print('ask_create_new_room:', msg.from_user.id)
-    await msg.answer(ASK_CREATE_CONF_STRING, reply_markup=kb.AskConfirmationRKB('Подтвердить создание комнаты'))
+    await msg.answer(Strings.ASK_CREATE_CONF_STRING, reply_markup=kb.AskConfirmationRKB('Подтвердить создание комнаты'))
     await state.set_state(MainMenuStates.create_state)
 
 
 @r.message(F.text == "Подтвердить создание комнаты", MainMenuStates.create_state)
 async def ask_new_room_name(msg: types.Message, state: FSMContext):
     print('ask_new_room_name:', msg.from_user.id)
-    await msg.answer(Strings.Strings.ASK_ROOM_NAME_STRING, reply_markup=ReplyKeyboardRemove())
+    await msg.answer(Strings.ASK_ROOM_NAME_STRING, reply_markup=ReplyKeyboardRemove())
     await state.set_state(MainMenuStates.room_name)
 
 
@@ -78,10 +78,10 @@ async def save_room_name(msg: types.Message, state: FSMContext):
     if await Engine.validate_room_name(room_name):
         await state.update_data({"room_name": room_name})
         await state.set_state(MainMenuStates.conf_create_state)
-        await msg.answer(Strings.Strings.ASK_CONF_ROOM_NAME_STRING % room_name,
+        await msg.answer(Strings.ASK_CONF_ROOM_NAME_STRING % room_name,
                          reply_markup=kb.AskConfirmationIKB('Подтвердить', 'room_name'))
     else:
-        await msg.answer(Strings.Strings.WRONG_ROOM_NAME_STRING % room_name,
+        await msg.answer(Strings.WRONG_ROOM_NAME_STRING % room_name,
                      reply_markup=kb.MainMenuRKB())
         # todo set to create_state
         await state.clear()
@@ -99,7 +99,7 @@ async def create_new_room(msg: types.CallbackQuery, state: FSMContext):
 
     room = await Engine.register_new_room(data['room_name'], user_host)
 
-    await msg.message.answer(CREATED_STRING % data['room_name'])
+    await msg.message.answer(Strings.CREATED_STRING % data['room_name'])
     await msg.message.answer(room.ID, reply_markup=kb.RoomMenuRKB(True))
 
     await state.update_data({'curr_room': room})
@@ -112,8 +112,8 @@ async def create_new_room(msg: types.CallbackQuery, state: FSMContext):
 async def my_room_list(msg: types.Message, state: FSMContext):
     print('check_my_rooms:', msg.from_user.id)
     room_names = await Engine.get_rooms_where_player(msg.from_user.id)
-    await msg.answer(CHECK_MY_ROOMS_STRING, reply_markup=ReplyKeyboardRemove())
-    await msg.answer(ROOM_LIST_STRING,
+    await msg.answer(Strings.CHECK_MY_ROOMS_STRING, reply_markup=ReplyKeyboardRemove())
+    await msg.answer(Strings.ROOM_LIST_STRING,
                      reply_markup=kb.RoomListIKB(await Engine.get_rooms_where_player(msg.from_user.id)))
     await state.set_state(MainMenuStates.room_list)
 
@@ -121,7 +121,7 @@ async def my_room_list(msg: types.Message, state: FSMContext):
 @r.message(F.text == "Войти в комнату")
 async def ask_join_key(msg: types.Message, state: FSMContext):
     print('ask_join_key:', msg.from_user.id)
-    await msg.answer(JOIN_STRING, reply_markup=kb.CancelRKB())
+    await msg.answer(Strings.JOIN_STRING, reply_markup=kb.CancelRKB())
     await state.set_state(MainMenuStates.join_state)
 
 
@@ -139,7 +139,7 @@ async def join_room(msg: types.Message, state: FSMContext):
             curr_room = data.get('curr_room')
 
         await Engine.put_player_in_room(msg.text, user=data['user'], is_host=is_host)
-        await msg.answer(JOIN_SUCCEEDED_STRING, reply_markup=kb.RoomMenuRKB(is_host))
+        await msg.answer(Strings.JOIN_SUCCEEDED_STRING, reply_markup=kb.RoomMenuRKB(is_host))
 
         # notifications
         await msg.bot.send_message(
@@ -147,7 +147,7 @@ async def join_room(msg: types.Message, state: FSMContext):
             f"{msg.from_user.username} вошёл в комнату \"{curr_room.Name}\", которую вы создали")
 
     except RoomDoesNotExistError as e:
-        await msg.answer(JOIN_FAILED_STRING)
+        await msg.answer(Strings.JOIN_FAILED_STRING)
         await msg.answer(e.__str__(), reply_markup=kb.MainMenuRKB())
 
     except PlayerAlreadyJoinedRoomError as e:
@@ -178,17 +178,11 @@ async def room_player_list(msg: types.Message, state: FSMContext):
         curr_room = await Engine.get_room(msg.data)
     else:
         curr_room = data.get('curr_room')
-    ans = Strings.Strings.PlAYER_LIST_STRING % curr_room.Name
+    ans = Strings.PlAYER_LIST_STRING % curr_room.Name
     for p in curr_room.Players:
         ans += f"    @{p.Username}\n"
 
-    if len(curr_room.Players) % 10 == 1:
-        word = 'игрок'
-    elif len(curr_room.Players) % 10 in (2, 3, 4):
-        word = 'игрока'
-    else:
-        word = 'игроков'
-    ans += f"Всего {len(curr_room.Players)} {word}"
+    ans += f"Всего {len(curr_room.Players)} {Engine.verbose_player(len(curr_room.Players))}"
     await msg.answer(ans)
 
 
@@ -201,10 +195,10 @@ async def ask_distribute(msg: types.Message, state: FSMContext):
         curr_room = data.get('curr_room')
     if str(msg.from_user.id) in curr_room.ID:
         await state.set_state(RoomMenuStates.ask_distribute_state)
-        await msg.answer(Strings.Strings.ASK_ROOM_DISTRIBUTE_STRING,
+        await msg.answer(Strings.ASK_ROOM_DISTRIBUTE_STRING,
                          reply_markup=kb.AskConfirmationIKB('Провести жеребьёвку', 'distribute'))
     else:
-        await msg.answer(Strings.Strings.ASK_ROOM_DISTRIBUTE_NON_HOST_STRING, reply_markup=kb.RoomMenuRKB(True))
+        await msg.answer(Strings.ASK_ROOM_DISTRIBUTE_NON_HOST_STRING, reply_markup=kb.RoomMenuRKB(True))
 
 
 @r.callback_query(F.data == 'confirm_distribute', RoomMenuStates.ask_distribute_state)
@@ -218,7 +212,7 @@ async def distribute(msg: types.CallbackQuery, state: FSMContext):
     curr_room.distribute()
     await Engine.update_room(curr_room)
     for p in curr_room.Players:
-        await msg.bot.send_message(p.Telegram_ID, Strings.Strings.DISTRIBUTE_SUCCEEDED_STRING % curr_room.Name,
+        await msg.bot.send_message(p.Telegram_ID, Strings.DISTRIBUTE_SUCCEEDED_STRING % curr_room.Name,
                                    reply_markup=kb.RoomMenuRKB(True))
     await state.set_state(RoomMenuStates.check_state)
 
@@ -236,15 +230,15 @@ async def get_acceptor(msg: types.Message, state: FSMContext):
             acceptor_id = p.Acceptor
             for a in curr_room.Players:
                 if a.Telegram_ID == acceptor_id:
-                    await msg.answer(Strings.Strings.GET_ACCEPTOR_STRING % (a.Username, a.Disc))
+                    await msg.answer(Strings.GET_ACCEPTOR_STRING % (a.Username, a.Disc))
             else:
-                await msg.answer(Strings.Strings.EMPTY_ACCEPTOR_STRING)
+                await msg.answer(Strings.EMPTY_ACCEPTOR_STRING)
 
 
 @r.message(F.text.lower() == 'покинуть комнату', RoomMenuStates.check_state)
 async def ask_leave_room(msg: types.Message, state: FSMContext):
     await state.set_state(RoomMenuStates.leave_state)
-    await msg.answer(Strings.Strings.ASK_LEAVE_STRING, reply_markup=kb.AskConfirmationRKB('Подтвердить выход'))
+    await msg.answer(Strings.ASK_LEAVE_STRING, reply_markup=kb.AskConfirmationRKB('Подтвердить выход'))
 
 
 @r.message(F.text.lower() == 'подтвердить выход', StateFilter(RoomMenuStates.leave_state))
@@ -253,7 +247,7 @@ async def leave_room(msg: types.Message, state: FSMContext):
     room = data.pop('curr_room')
     print(data)
     await Engine.leave_room(room.ID, msg.from_user.id)
-    await msg.answer(LEAVE_SUCCEEDED_STRING, reply_markup=kb.MainMenuRKB())
+    await msg.answer(Strings.LEAVE_SUCCEEDED_STRING, reply_markup=kb.MainMenuRKB())
     await msg.bot.send_message(
         room.ID[1:room.ID.find('_')],
         f"@{msg.from_user.username} вышел из комнаты \"{room.Name}\", которую вы создали")

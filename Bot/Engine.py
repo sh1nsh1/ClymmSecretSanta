@@ -1,18 +1,26 @@
 from functools import wraps
 
-from entities.Room import *
-from entities.Player import *
-from entities.User import *
+from entities.Player import Player
+from entities.User import User
+from entities.Room import Room
+
 from exeptions import *
 import datetime
 import asyncpg
 
+def verbose_player(count):
+    word = 'игроков'
+    if (count%10 < 5):
+        word = 'игрока'
+    if (count%10 == 1):
+        word = 'игрок' 
+    return word
 
 def on_db(func):
     @wraps(func)
     async def _wrapper(*args, **kwargs):
         conn = await asyncpg.connect(database='csfdb', user='postgres',
-                                     password='1111', host='localhost')
+                                     password='1234', host='localhost')
         try:
             return await func(conn, *args, **kwargs)
         finally:
@@ -23,13 +31,13 @@ def on_db(func):
 
 async def initialise_db():
     init_conn = await asyncpg.connect(database='postgres', user='postgres',
-                                      password='1111', host='localhost')
+                                      password='1234', host='localhost')
     if len(await init_conn.fetch("select datname from pg_database where datname = 'csfdb'")) == 0:
         await init_conn.execute(f"create database csfdb")
     await init_conn.close()
 
     db = await asyncpg.connect(database='csfdb', user='postgres',
-                               password='1111', host='localhost')
+                               password='1234', host='localhost')
     # create users table
     await db.execute('create table if not exists users('
                      'telegram_id text primary key,'
@@ -44,14 +52,14 @@ async def initialise_db():
                      'room_id text primary key,'
                      'room_name text,'
                      'host_id text,'
-                     'is_destributed bool,'
+                     'is_distributed bool,'
                      'player_count int);')
     await db.close()
 
 
 async def drop_db():
     init_conn = await asyncpg.connect(database='postgres', user='postgres',
-                                      password='1111', host='localhost')
+                                      password='1234', host='localhost')
     if len(await init_conn.fetch("select datname from pg_database where datname = 'csfdb'")):
         await init_conn.execute(f"drop database csfdb")
     await init_conn.close()
@@ -60,7 +68,7 @@ async def drop_db():
 def create_user(user_id, username) -> User:
     return User(telegram_id=user_id, username=username)
 
-
+#fixme 
 @on_db
 async def get_room_name(conn, room_id) -> str:
     res = await conn.fetchrow(f"select room_name from rooms_info where room_id = '{room_id}'")
@@ -78,7 +86,7 @@ async def get_room(conn, room_id) -> Room:
     room = Room(room_id, room_name,
                 tuple([Player(
                     line['player_id'], line['name'],
-                    line['acceptor'], line['disc']) for line in res]
+                    line['acceptor_id'], line['disc']) for line in res]
                 )
                 )
     return room
@@ -164,7 +172,7 @@ async def update_room(conn, room: Room):
             f"'{player.Disc}') "
             f"on conflict (player_id) do "
             f"update set name = '{player.Username}',"
-            f"acceptor = '{player.Acceptor}',"
+            f"acceptor_id = '{player.Acceptor}',"
             f"disc = '{player.Disc}' "
             f"where {room.ID}.player_id = '{player.Telegram_ID}';")
 
@@ -180,23 +188,21 @@ async def leave_room(conn, room_id, player_id):
 
 
 @on_db
-async def get_rooms_where_player(conn, tg_id):
-    q = await conn.fetch(
-        f"WITH hosts AS ("
-        f"  SELECT users.username, users.telegram_id, users_rooms.room_id FROM users_rooms "
-        f"  JOIN users ON users_rooms.telegram_id = users.telegram_id "
-        f"  WHERE is_host = true)"
-        f"SELECT hosts.room_id, room_name, hosts.telegram_id, username FROM users_rooms "
-        f"JOIN room_names ON users_rooms.room_id = room_names.room_id "
-        f"JOIN hosts ON hosts.room_id = users_rooms.room_id "
-        f"WHERE users_rooms.telegram_id = '{tg_id}';"
-    )
-    a = f"select * from "
-    result = [Room(
-        line['room_id'], line["room_name"],
-        (Player(
-            line["telegram_id"],
-            line["username"]),
-        )) for line in q]
+async def get_rooms_where_player(conn, telegram_id):
+    quary = (f"select room_id, room_name, host_id, users.username, is_distributed, player_count from rooms_info "
+         f"join users on users.telegram_id = rooms_info.host_id "
+         f"where room_id in (select room_id from users_rooms where telegram_id = '{telegram_id}') "
+         f"or host_id = '{telegram_id}';")
+    data = await conn.fetch(quary)
+    result = [
+        (Room(
+            line["room_id"], line["room_name"],
+            (Player(
+                line["host_id"],
+                line["username"]
+            ),)
+        ), {"is_distributed":line["is_distributed"],
+            "player_count": line["player_count"] })
+        for line in data]
 
     return tuple(result)

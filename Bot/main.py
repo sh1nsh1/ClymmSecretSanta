@@ -10,7 +10,7 @@ async def main():
     dp.include_router(r)
     dp.callback_query.middleware(CallbackAnswerMiddleware())
 
-    bot = Bot(token=open('TOKEN.txt').readline())
+    bot = Bot(token=open("bot/TOKEN.txt").readline())
 
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
