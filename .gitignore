@@ -2,3 +2,4 @@ bot/test.py
 bot/TOKEN.txt
 .venv/
 schema.drawio
+__pycache__/
