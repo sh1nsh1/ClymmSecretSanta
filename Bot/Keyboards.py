@@ -8,42 +8,33 @@ import Engine
 def MainMenuRKB():
     builder = ReplyKeyboardBuilder()
     builder.add(
-        KeyboardButton(
-            text="Создать новую комнату",
-            callback_data="create"),
-        KeyboardButton(
-            text="Войти в комнату",
-            callback_data="join"),
-        KeyboardButton(
-            text="Мои комнаты",
-            callback_data="check")
+        KeyboardButton(text="Создать новую комнату", callback_data="create"),
+        KeyboardButton(text="Войти в комнату", callback_data="join"),
+        KeyboardButton(text="Мои комнаты", callback_data="check"),
     )
     builder.adjust(3, 1)
     return ReplyKeyboardMarkup(keyboard=builder.export(), resize_keyboard=True)
 
 
-def AskConfirmationRKB(action_text='Подтвердить', action_callbcack=''):
+def AskConfirmationRKB(action_text="Подтвердить", action_callbcack=""):
     builder = ReplyKeyboardBuilder()
     builder.add(
         types.KeyboardButton(
-            text=action_text,
-            callback_data="confirm_" + action_callbcack),
-        types.KeyboardButton(
-            text="Отменить")
+            text=action_text, callback_data="confirm_" + action_callbcack
+        ),
+        types.KeyboardButton(text="Отменить"),
     )
     builder.adjust(2, 1)
     return ReplyKeyboardMarkup(keyboard=builder.export(), resize_keyboard=True)
 
 
-def AskConfirmationIKB(action_text='', action_callbcack=''):
+def AskConfirmationIKB(action_text="", action_callbcack=""):
     builder = InlineKeyboardBuilder()
     builder.add(
         types.InlineKeyboardButton(
-            text=action_text,
-            callback_data="confirm_" + action_callbcack),
-        types.InlineKeyboardButton(
-            text="Отменить",
-            callback_data="cancel")
+            text=action_text, callback_data="confirm_" + action_callbcack
+        ),
+        types.InlineKeyboardButton(text="Отменить", callback_data="cancel"),
     )
     builder.adjust(2, 1)
     return InlineKeyboardMarkup(inline_keyboard=builder.export())
@@ -51,16 +42,15 @@ def AskConfirmationIKB(action_text='', action_callbcack=''):
 
 def RoomListIKB(data):
     builder = InlineKeyboardBuilder()
-    for room,metadata in data:
-        builder.row(types.InlineKeyboardButton(
-            text=f"\"{room.Name}\" от @{room.Players[0].Username} {metadata["player_count"]} "
-                f"{Engine.verbose_player(metadata["player_count"])} {"(подготовка)" if not metadata["is_distributed"] else "(игра началась)"}",
-            callback_data=f"{room.ID}"))
-    builder.row(
-        types.InlineKeyboardButton(
-            text="Отменить",
-            callback_data="cancel")
-    )
+    for room, metadata in data:
+        builder.row(
+            types.InlineKeyboardButton(
+                text=f'"{room.Name}" от @{room.Players[0].Username} {metadata["player_count"]} '
+                f"{Engine.verbose_player(metadata['player_count'])} {'(подготовка)' if not metadata['is_distributed'] else '(игра началась)'}",
+                callback_data=f"{room.ID}",
+            )
+        )
+    builder.row(types.InlineKeyboardButton(text="Отменить", callback_data="cancel"))
 
     return InlineKeyboardMarkup(inline_keyboard=builder.export())
 
@@ -68,20 +58,16 @@ def RoomListIKB(data):
 def RoomMenuRKB(is_host: bool = False):
     builder = ReplyKeyboardBuilder()
     builder.row(
-        KeyboardButton(
-            text="Редактировать анкету игрока",
-            callback_data="edit_player"),
-        KeyboardButton(
-            text="Узнать моего подопечного",
-            callback_data="see_acceptor"),width=2)
+        KeyboardButton(text="Анкета игрока", callback_data="edit_player"),
+        KeyboardButton(text="Узнать моего подопечного", callback_data="see_acceptor"),
+        width=2,
+    )
     builder.row(
-        KeyboardButton(
-            text="Покинуть комнату",
-            callback_data="leave_room"),
-        KeyboardButton(
-            text="Список участников",
-            callback_data="player_list"), width=2)
-    
+        KeyboardButton(text="Покинуть комнату", callback_data="leave_room"),
+        KeyboardButton(text="Список участников", callback_data="player_list"),
+        width=2,
+    )
+
     # builder.adjust(3, 1)
     if is_host:
         # builder.row(
@@ -90,37 +76,39 @@ def RoomMenuRKB(is_host: bool = False):
         #         callback_data="edit_room"), )
         builder.row(
             KeyboardButton(
-                text="Удалить комнату (создатель)",
-                callback_data="delete_room"),
+                text="Удалить комнату (создатель)", callback_data="delete_room"
+            ),
             KeyboardButton(
-                text="Провести жеребьевку (создатель)",
-                callback_data="distribute"),
+                text="Провести жеребьевку (создатель)", callback_data="distribute"
+            ),
         )
-        
+
         builder.row(
-            KeyboardButton(
-                text="В меню",
-                callback_data="cancel"),
+            KeyboardButton(text="В меню", callback_data="cancel"),
         )
     return ReplyKeyboardMarkup(keyboard=builder.export(), resize_keyboard=True)
 
 
 def CancelIKB():
     builder = InlineKeyboardBuilder()
-    builder.row(
-        types.InlineKeyboardButton(
-            text="Отменить",
-            callback_data="cancel")
-    )
+    builder.row(types.InlineKeyboardButton(text="Отменить", callback_data="cancel"))
 
     return InlineKeyboardMarkup(inline_keyboard=builder.export())
 
 
 def CancelRKB():
     builder = ReplyKeyboardBuilder()
+    builder.row(types.KeyboardButton(text="Отменить", callback_data="cancel"))
+    return ReplyKeyboardMarkup(keyboard=builder.export(), resize_keyboard=True)
+
+
+def PlayerFormRKB():
+    builder = ReplyKeyboardBuilder()
     builder.row(
-        types.KeyboardButton(
-            text="Отменить",
-            callback_data="cancel")
+        types.KeyboardButton(text="Имя", callback_data="name"),
+        types.KeyboardButton(text="Пожелания", callback_data="wishes"),
+    )
+    builder.row(
+        types.KeyboardButton(text="Отменить", callback_data="cancel"),
     )
     return ReplyKeyboardMarkup(keyboard=builder.export(), resize_keyboard=True)

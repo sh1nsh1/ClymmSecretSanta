@@ -9,6 +9,7 @@ class MainMenuStates(StatesGroup):
     room_name = State()
     room_list = State()
 
+
 class RoomMenuStates(StatesGroup):
     check_state = State()
     ask_distribute_state = State()
@@ -20,7 +21,10 @@ class RoomMenuStates(StatesGroup):
     # mb more
 
 
-class PlayerStates(StatesGroup):
-    Name = State()
-    Disc = State()
+class PlayerFormStates(StatesGroup):
+    edit_form_state = State()
+    ask_name = State()
+    ask_conf_name = State()
+    ask_disc = State()
+    ask_conf_disc = State()
     # mb more
